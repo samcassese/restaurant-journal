@@ -12,10 +12,12 @@ export default async function MapPage() {
   ]);
 
   type RestaurantRow = { restaurant_id: string; name: string; latitude: number; longitude: number; google_place_id: string };
-  const toRestaurant = (r: { restaurants?: RestaurantRow | RestaurantRow[] | null }): RestaurantRow | null => {
-    const rel = r.restaurants;
+  const toRestaurant = (r: unknown): RestaurantRow | null => {
+    const row = r as { restaurants?: RestaurantRow | RestaurantRow[] | null };
+    const rel = row.restaurants;
     if (!rel) return null;
-    return Array.isArray(rel) ? (rel[0] ?? null) : rel;
+    const one = Array.isArray(rel) ? rel[0] : rel;
+    return one ?? null;
   };
   const visited = (visitedRes.data ?? []).map(toRestaurant).filter((r): r is RestaurantRow => r != null);
   const wantToTry = (wantRes.data ?? []).map(toRestaurant).filter((r): r is RestaurantRow => r != null);
