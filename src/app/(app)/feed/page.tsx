@@ -13,7 +13,7 @@ export default async function FeedPage() {
     .eq("follower_id", user.id);
   const followingIds = [...(following ?? []).map((f) => f.following_id), user.id];
 
-  const { data: reviews } = await supabase
+  const { data: rawReviews } = await supabase
     .from("reviews")
     .select(`
       review_id,
@@ -29,10 +29,37 @@ export default async function FeedPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
+  // Supabase returns relations as arrays; normalize to single objects for FeedList
+  type FeedReview = {
+    review_id: string;
+    rating: number;
+    review_text: string | null;
+    visit_date: string | null;
+    created_at: string;
+    user: { user_id: string; name: string | null; profile_photo: string | null } | null;
+    restaurant: { restaurant_id: string; name: string; google_place_id: string; latitude: number; longitude: number } | null;
+    review_photos: { photo_id: string; image_url: string }[];
+  };
+  const rows = rawReviews ?? [];
+  const reviews: FeedReview[] = rows.map((r) => {
+    const userRel = r.user as unknown;
+    const restaurantRel = r.restaurant as unknown;
+    return {
+      review_id: r.review_id,
+      rating: r.rating,
+      review_text: r.review_text,
+      visit_date: r.visit_date,
+      created_at: r.created_at,
+      user: Array.isArray(userRel) ? (userRel[0] ?? null) : (userRel as FeedReview["user"]),
+      restaurant: Array.isArray(restaurantRel) ? (restaurantRel[0] ?? null) : (restaurantRel as FeedReview["restaurant"]),
+      review_photos: (r.review_photos ?? []) as FeedReview["review_photos"],
+    };
+  });
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="text-lg font-medium text-stone-900 mb-4">Feed</h1>
-      <FeedList initialReviews={reviews ?? []} currentUserId={user.id} />
+      <FeedList initialReviews={reviews} currentUserId={user.id} />
     </div>
   );
 }
