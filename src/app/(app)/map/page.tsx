@@ -11,12 +11,14 @@ export default async function MapPage() {
     supabase.from("want_to_try").select("restaurant_id, restaurants(restaurant_id, name, latitude, longitude, google_place_id)").eq("user_id", user.id),
   ]);
 
-  const visited = (visitedRes.data ?? [])
-    .map((r) => (r as { restaurants: { restaurant_id: string; name: string; latitude: number; longitude: number; google_place_id: string } }).restaurants)
-    .filter(Boolean);
-  const wantToTry = (wantRes.data ?? [])
-    .map((r) => (r as { restaurants: { restaurant_id: string; name: string; latitude: number; longitude: number; google_place_id: string } }).restaurants)
-    .filter(Boolean);
+  type RestaurantRow = { restaurant_id: string; name: string; latitude: number; longitude: number; google_place_id: string };
+  const toRestaurant = (r: { restaurants?: RestaurantRow | RestaurantRow[] | null }): RestaurantRow | null => {
+    const rel = r.restaurants;
+    if (!rel) return null;
+    return Array.isArray(rel) ? (rel[0] ?? null) : rel;
+  };
+  const visited = (visitedRes.data ?? []).map(toRestaurant).filter((r): r is RestaurantRow => r != null);
+  const wantToTry = (wantRes.data ?? []).map(toRestaurant).filter((r): r is RestaurantRow => r != null);
 
   const visitedIds = new Set(visited.map((r) => r.restaurant_id));
   const wantOnly = wantToTry.filter((r) => !visitedIds.has(r.restaurant_id));
