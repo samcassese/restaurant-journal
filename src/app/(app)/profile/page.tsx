@@ -24,8 +24,20 @@ export default async function ProfilePage() {
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.user_id),
   ]);
 
-  const avgRating = reviews?.length
-    ? (reviews.reduce((s, r) => s + (r as { rating: number }).rating, 0) / reviews.length).toFixed(1)
+  type ReviewWithRestaurant = { review_id: string; rating: number; created_at: string; restaurant: { name: string; google_place_id: string } | null };
+  type WantRowWithRestaurant = { restaurant_id: string; restaurant: { name: string; google_place_id: string } | null };
+  const toOne = <T,>(v: unknown): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v as T));
+  const normalizedReviews: ReviewWithRestaurant[] = (reviews ?? []).map((r: unknown) => {
+    const row = r as { review_id: string; rating: number; created_at: string; restaurant?: unknown };
+    return { review_id: row.review_id, rating: row.rating, created_at: row.created_at, restaurant: toOne<ReviewWithRestaurant["restaurant"]>(row.restaurant) };
+  });
+  const normalizedWant: WantRowWithRestaurant[] = (wantToTry ?? []).map((w: unknown) => {
+    const row = w as { restaurant_id: string; restaurant?: unknown };
+    return { restaurant_id: row.restaurant_id, restaurant: toOne<WantRowWithRestaurant["restaurant"]>(row.restaurant) };
+  });
+
+  const avgRating = normalizedReviews.length
+    ? (normalizedReviews.reduce((s, r) => s + r.rating, 0) / normalizedReviews.length).toFixed(1)
     : "—";
 
   return (
@@ -48,9 +60,9 @@ export default async function ProfilePage() {
 
       <section className="mb-6">
         <h2 className="text-sm font-medium text-stone-900 mb-2">Recent reviews</h2>
-        {reviews?.length ? (
+        {normalizedReviews.length ? (
           <ul className="space-y-1">
-            {reviews.map((r: { review_id: string; rating: number; created_at: string; restaurant: { name: string; google_place_id: string } | null }) => (
+            {normalizedReviews.map((r) => (
               <li key={r.review_id}>
                 <Link href={`/restaurant/${r.restaurant?.google_place_id}`} className="flex justify-between rounded-md border border-stone-200 bg-white px-3 py-2 text-sm hover:bg-stone-50">
                   <span>{r.restaurant?.name}</span>
@@ -69,9 +81,9 @@ export default async function ProfilePage() {
 
       <section>
         <h2 className="text-sm font-medium text-stone-900 mb-2">Want to try</h2>
-        {wantToTry?.length ? (
+        {normalizedWant.length ? (
           <ul className="space-y-1">
-            {wantToTry.map((w: { restaurant_id: string; restaurant: { name: string; google_place_id: string } | null }) => (
+            {normalizedWant.map((w) => (
               <li key={w.restaurant_id}>
                 <Link href={`/restaurant/${w.restaurant?.google_place_id}`} className="block rounded-md border border-stone-200 bg-white px-3 py-2 text-sm hover:bg-stone-50">
                   {w.restaurant?.name}
