@@ -17,7 +17,13 @@ A social restaurant tracking app: log places you’ve visited, rate them, and di
 - **Backend**: Supabase (PostgreSQL, Auth, Storage)
 - **APIs**: Google Places API, Google Maps Platform
 
-## Setup
+## Deploy (least work)
+
+See **[QUICKSTART.md](./QUICKSTART.md)** — one link to import the repo to Vercel, paste 4 env vars, then add your app URL in Supabase. No second deploy needed.
+
+---
+
+## Setup (local dev)
 
 ### 1. Install dependencies
 
@@ -33,9 +39,9 @@ Copy the example env and fill in your keys:
 cp .env.local.example .env.local
 ```
 
-- **Supabase**: Create a project at [supabase.com](https://supabase.com). In Authentication → Providers enable Google and (optionally) Apple. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. For server-side use (e.g. admin), add `SUPABASE_SERVICE_ROLE_KEY`.
+- **Supabase**: Full walkthrough → **[docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)** (create project, run migrations, enable Google/Apple, get keys).
 - **Google Cloud**: Create a project, enable **Places API (New)** and **Maps JavaScript API**. Create an API key and restrict it by HTTP referrer (and/or IP) for production. Put the key in `GOOGLE_PLACES_API_KEY` (server-only). For the map in the browser, use a separate key in `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (optional if you load the script yourself).
-- **App URL**: Set `NEXT_PUBLIC_APP_URL` to your app URL (e.g. `http://localhost:3000` in dev) for OAuth redirects.
+- **App URL** (optional): `NEXT_PUBLIC_APP_URL` for OAuth in dev (e.g. `http://localhost:3000`). On Vercel the app detects its own URL.
 
 ### 3. Database
 
