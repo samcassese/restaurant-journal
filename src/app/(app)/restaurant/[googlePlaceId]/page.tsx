@@ -21,8 +21,20 @@ export default async function RestaurantPage({ params }: Props) {
     .eq("google_place_id", placeId)
     .single();
 
+  type ReviewRow = {
+    review_id: string;
+    rating: number;
+    review_text: string | null;
+    visit_date: string | null;
+    created_at: string;
+    user_id: string;
+    user: { user_id: string; name: string | null; profile_photo: string | null } | null;
+    review_photos: { photo_id: string; image_url: string }[];
+  };
+  const toOne = <T,>(v: unknown): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v as T));
+
   let restaurantId = dbRestaurant?.restaurant_id ?? null;
-  let reviews: unknown[] = [];
+  let reviews: ReviewRow[] = [];
   let currentUserReviewIds: string[] = [];
   let currentUserWantToTry = false;
 
@@ -44,11 +56,24 @@ export default async function RestaurantPage({ params }: Props) {
         .order("created_at", { ascending: false }),
       user ? supabase.from("want_to_try").select("restaurant_id").eq("user_id", user.id).eq("restaurant_id", restaurantId).single() : { data: null },
     ]);
-    reviews = reviewsRes.data ?? [];
+    const raw = reviewsRes.data ?? [];
+    reviews = raw.map((r: unknown) => {
+      const row = r as { review_id: string; rating: number; review_text: string | null; visit_date: string | null; created_at: string; user_id: string; user?: unknown; review_photos?: unknown };
+      return {
+        review_id: row.review_id,
+        rating: row.rating,
+        review_text: row.review_text,
+        visit_date: row.visit_date,
+        created_at: row.created_at,
+        user_id: row.user_id,
+        user: toOne<ReviewRow["user"]>(row.user),
+        review_photos: Array.isArray(row.review_photos) ? row.review_photos : (row.review_photos ? [row.review_photos] : []),
+      } as ReviewRow;
+    });
     if (user) {
-      currentUserReviewIds = (reviewsRes.data ?? [])
-        .filter((r: { user_id: string }) => r.user_id === user.id)
-        .map((r: { review_id: string }) => r.review_id);
+      currentUserReviewIds = raw
+        .filter((r: { user_id: string }) => (r as { user_id: string }).user_id === user.id)
+        .map((r: { review_id: string }) => (r as { review_id: string }).review_id);
       currentUserWantToTry = !!wantRes.data;
     }
   }
